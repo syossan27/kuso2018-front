@@ -1,0 +1,26 @@
+{
+  "name": "kuso2018-front",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {},
+  "scripts": {
+    "build": "webpack",
+    "start": "webpack-dev-server",
+    "test": "elm-test"
+  },
+  "devDependencies": {
+    "css-loader": "^0.28.10",
+    "elm": "^0.19.0-bugfix2",
+    "elm-test": "0.19.0",
+    "elm-webpack-loader": "^5.0.0",
+    "html-webpack-plugin": "^3.2.0",
+    "node-sass": "^4.9.1",
+    "sass-loader": "^7.0.3",
+    "style-loader": "^0.20.3",
+    "url-loader": "^1.1.1",
+    "webpack": "^4.17.1",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.10"
+  }
+}
