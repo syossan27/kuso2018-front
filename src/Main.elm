@@ -1,21 +1,26 @@
-module Main exposing (..)
+module Main exposing (Actress, Model, Msg(..), main, update, view)
 
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
+import Html.Events exposing (onClick, onInput)
+
 
 
 ---- MODEL ----
 
 
+type alias Actress =
+    { name : String, image : String, height : Int, age : Int, bust : Int, cup : String, west : Int, hip : Int }
+
+
 type alias Model =
-    { title : String, todo : List String }
+    { actresses : List Actress, searchParams : List String }
 
 
-model : Model
-model =
-    Model "" []
+init : () -> ( Model, Cmd Msg )
+init _ =
+    ( { actresses = [], searchParams = [] }, Cmd.none )
 
 
 
@@ -23,18 +28,20 @@ model =
 
 
 type Msg
-    = Title String
+    = AddSearchParam String
     | Submit
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Title inputTitle ->
-            { model | title = inputTitle }
+        -- 検索パラメータの追加 --
+        AddSearchParam searchParam ->
+            ( { model | searchParams = searchParam :: model.searchParams }, Cmd.none )
 
+        -- 検索の実行 --
         Submit ->
-            { model | todo = model.title :: model.todo }
+            ( model, Cmd.none )
 
 
 
@@ -44,26 +51,18 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div []
-        [ h1 [] [ text "TODO List" ]
-        , input [ placeholder "タスク名", onInput Title ] []
-        , button [ onClick Submit ] [ text "追加" ]
-        , ul [] (todoList model.todo)
-        ]
+        [ text "hoge" ]
 
 
-todoList : List String -> List (Html Msg)
-todoList todo =
-    List.map (\w -> li [] [ text w ]) todo
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
-
----- PROGRAM ----
-
-
-main : Program Never Model Msg
 main =
     Browser.element
-    { view = view
-        , model = model
+        { init = init
         , update = update
+        , subscriptions = subscriptions
+        , view = view
         }
