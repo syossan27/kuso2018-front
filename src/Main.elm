@@ -95,8 +95,14 @@ getActresses =
 
 view : Model -> Html Msg
 view model =
+    let
+        actresses2li actresses =
+            List.map (\a -> li [] [ text a.name ]) actresses
+    in
     div []
-        [ button [ onClick GetActresses ] [ text "Get Actresses" ] ]
+        [ button [ onClick GetActresses ] [ text "Get Actresses" ]
+        , ul [] (actresses2li model.actresses)
+        ]
 
 
 subscriptions : Model -> Sub Msg
