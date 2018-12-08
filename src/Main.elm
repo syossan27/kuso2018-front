@@ -7,6 +7,7 @@ import Html.Events exposing (onClick, onInput)
 import Http exposing (..)
 import Json.Decode as Decode exposing (Decoder, float, int, string)
 import Json.Decode.Pipeline exposing (hardcoded, optional, required)
+import Paginate exposing (..)
 
 
 
@@ -20,6 +21,7 @@ type alias Actress =
 type alias Model =
     { actresses : List Actress
     , searchParams : List String
+    , paginatedActresses : PaginatedList Actress
     }
 
 
@@ -27,6 +29,7 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( { actresses = []
       , searchParams = []
+      , paginatedActresses = Paginate.fromList 10 []
       }
     , Cmd.none
     )
@@ -40,6 +43,11 @@ type Msg
     = SetSearchParam String
     | NewActresses (Result Http.Error (List Actress))
     | Submit
+    | Next
+    | Prev
+    | First
+    | Last
+    | GoTo Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -54,7 +62,7 @@ update msg model =
                 ( { model | searchParams = param :: model.searchParams }, Cmd.none )
 
         NewActresses (Ok newactresses) ->
-            ( { model | actresses = newactresses }, Cmd.none )
+            ( { model | actresses = newactresses, paginatedActresses = Paginate.fromList 10 newactresses }, Cmd.none )
 
         NewActresses (Err _) ->
             ( model, Cmd.none )
@@ -62,6 +70,21 @@ update msg model =
         -- 検索の実行 --
         Submit ->
             ( model, getActresses model )
+
+        Next ->
+            ( { model | paginatedActresses = Paginate.next model.paginatedActresses }, Cmd.none )
+
+        Prev ->
+            ( { model | paginatedActresses = Paginate.prev model.paginatedActresses }, Cmd.none )
+
+        First ->
+            ( { model | paginatedActresses = Paginate.first model.paginatedActresses }, Cmd.none )
+
+        Last ->
+            ( { model | paginatedActresses = Paginate.last model.paginatedActresses }, Cmd.none )
+
+        GoTo index ->
+            ( { model | paginatedActresses = Paginate.goTo index model.paginatedActresses }, Cmd.none )
 
 
 
@@ -114,12 +137,48 @@ view model =
 
         actresses2li actresses =
             List.map (\a -> li [] [ text a.name, img [ src a.image, width 150, height 150 ] [] ]) actresses
+
+        prevButtons =
+            [ button [ onClick First, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<<" ]
+            , button [ onClick Prev, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<" ]
+            ]
+
+        nextButtons =
+            [ button [ onClick Next, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">" ]
+            , button [ onClick Last, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">>" ]
+            ]
+
+        pagerButtonView index isActive =
+            button
+                [ style "font-weight"
+                    (if isActive then
+                        "bold"
+
+                     else
+                        "normal"
+                    )
+                , onClick <| GoTo index
+                ]
+                [ text <| String.fromInt index ]
     in
-    div []
+    div [] <|
         [ div [] createButtons
         , button [ onClick Submit ] [ text "検索" ]
-        , ul [] (actresses2li model.actresses)
         ]
+            ++ [ p [] [ text ((String.fromInt <| Paginate.length model.paginatedActresses) ++ "人") ] ]
+            ++ prevButtons
+            ++ [ span []
+                    [ text
+                        (String.join " "
+                            [ String.fromInt <| Paginate.currentPage model.paginatedActresses
+                            , "/"
+                            , String.fromInt <| Paginate.totalPages model.paginatedActresses
+                            ]
+                        )
+                    ]
+               ]
+            ++ nextButtons
+            ++ [ ul [] (actresses2li <| Paginate.page model.paginatedActresses) ]
 
 
 viewContentItem : String -> Html Msg
