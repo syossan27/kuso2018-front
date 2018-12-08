@@ -18,12 +18,18 @@ type alias Actress =
 
 
 type alias Model =
-    { actresses : List Actress, searchParams : List String }
+    { actresses : List Actress
+    , searchParams : List String
+    }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { actresses = [], searchParams = [] }, Cmd.none )
+    ( { actresses = []
+      , searchParams = []
+      }
+    , Cmd.none
+    )
 
 
 
@@ -31,8 +37,7 @@ init _ =
 
 
 type Msg
-    = SearchBakunyu
-    | GetActresses
+    = SetSearchParam String
     | NewActresses (Result Http.Error (List Actress))
     | Submit
 
@@ -41,11 +46,12 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         -- 検索パラメータの追加 --
-        SearchBakunyu ->
-            ( { model | searchParams = "爆乳" :: model.searchParams }, Cmd.none )
+        SetSearchParam param ->
+            if List.member param model.searchParams then
+                ( { model | searchParams = List.filter (\p -> p /= param) model.searchParams }, Cmd.none )
 
-        GetActresses ->
-            ( model, getActresses )
+            else
+                ( { model | searchParams = param :: model.searchParams }, Cmd.none )
 
         NewActresses (Ok newactresses) ->
             ( { model | actresses = newactresses }, Cmd.none )
@@ -55,7 +61,7 @@ update msg model =
 
         -- 検索の実行 --
         Submit ->
-            ( model, Cmd.none )
+            ( model, getActresses model )
 
 
 
@@ -66,27 +72,31 @@ url =
     "https://qbvj3e9oib.execute-api.ap-northeast-1.amazonaws.com/prod"
 
 
-requestActresses : Http.Request (List Actress)
-requestActresses =
-    Http.get url (Decode.list actress)
+requestActresses : Model -> Http.Request (List Actress)
+requestActresses model =
+    let
+        createQueryString : List String -> String
+        createQueryString searchParams =
+            url ++ "?params=" ++ String.join "," searchParams
+
+        actress : Decode.Decoder Actress
+        actress =
+            Decode.succeed Actress
+                |> required "name" string
+                |> required "image" string
+                |> optional "height" string "-"
+                |> optional "age" string "-"
+                |> optional "bust" string "-"
+                |> optional "cup" string "-"
+                |> optional "west" string "-"
+                |> optional "hip" string "-"
+    in
+    Http.get (createQueryString model.searchParams) (Decode.list actress)
 
 
-actress : Decode.Decoder Actress
-actress =
-    Decode.succeed Actress
-        |> required "name" string
-        |> required "image" string
-        |> optional "height" string "-"
-        |> optional "age" string "-"
-        |> optional "bust" string "-"
-        |> optional "cup" string "-"
-        |> optional "west" string "-"
-        |> optional "hip" string "-"
-
-
-getActresses : Cmd Msg
-getActresses =
-    Http.send NewActresses requestActresses
+getActresses : Model -> Cmd Msg
+getActresses model =
+    Http.send NewActresses (requestActresses model)
 
 
 
@@ -96,14 +106,25 @@ getActresses =
 view : Model -> Html Msg
 view model =
     let
+        expectParams =
+            [ "貧乳", "普乳", "巨乳", "爆乳", "超乳", "若手", "熟女", "貧尻", "巨尻", "低身長", "高身長" ]
+
+        createButtons =
+            List.map (\p -> button [ onClick (SetSearchParam p) ] [ text p ]) expectParams
+
         actresses2li actresses =
-            List.map (\a -> li [] [ text a.name ]) actresses
+            List.map (\a -> li [] [ text a.name, img [ src a.image, width 150, height 150 ] [] ]) actresses
     in
     div []
-        [ button [ onClick GetActresses ] [ text "Get Actresses" ]
-        , button [ onClick SearchBakunyu ] [ text "爆乳" ]
+        [ div [] createButtons
+        , button [ onClick Submit ] [ text "検索" ]
         , ul [] (actresses2li model.actresses)
         ]
+
+
+viewContentItem : String -> Html Msg
+viewContentItem item =
+    p [] [ text item ]
 
 
 subscriptions : Model -> Sub Msg
