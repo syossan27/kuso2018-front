@@ -31,7 +31,7 @@ init _ =
 
 
 type Msg
-    = AddSearchParam String
+    = SearchBakunyu
     | GetActresses
     | NewActresses (Result Http.Error (List Actress))
     | Submit
@@ -41,8 +41,8 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         -- 検索パラメータの追加 --
-        AddSearchParam searchParam ->
-            ( { model | searchParams = searchParam :: model.searchParams }, Cmd.none )
+        SearchBakunyu ->
+            ( { model | searchParams = "爆乳" :: model.searchParams }, Cmd.none )
 
         GetActresses ->
             ( model, getActresses )
@@ -101,6 +101,7 @@ view model =
     in
     div []
         [ button [ onClick GetActresses ] [ text "Get Actresses" ]
+        , button [ onClick SearchBakunyu ] [ text "爆乳" ]
         , ul [] (actresses2li model.actresses)
         ]
 
