@@ -29,7 +29,7 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( { actresses = []
       , searchParams = []
-      , paginatedActresses = Paginate.fromList 10 []
+      , paginatedActresses = Paginate.fromList 40 []
       }
     , Cmd.none
     )
@@ -56,16 +56,16 @@ update msg model =
         -- 検索パラメータの追加 --
         SetSearchParam param ->
             if List.member param model.searchParams then
-                ( { model | searchParams = List.filter (\p -> p /= param) model.searchParams }, Cmd.none )
+                ( { model | searchParams = List.filter (\p -> p /= param) model.searchParams }, getActresses { model | searchParams = List.filter (\p -> p /= param) model.searchParams } )
 
             else
-                ( { model | searchParams = param :: model.searchParams }, Cmd.none )
+                ( { model | searchParams = param :: model.searchParams }, getActresses { model | searchParams = param :: model.searchParams } )
 
         NewActresses (Ok newactresses) ->
-            ( { model | actresses = newactresses, paginatedActresses = Paginate.fromList 10 newactresses }, Cmd.none )
+            ( { model | actresses = newactresses, paginatedActresses = Paginate.fromList 40 newactresses }, Cmd.none )
 
         NewActresses (Err _) ->
-            ( model, Cmd.none )
+            ( { model | actresses = [], paginatedActresses = Paginate.fromList 40 [] }, Cmd.none )
 
         -- 検索の実行 --
         Submit ->
@@ -133,19 +133,16 @@ view model =
             [ "貧乳", "普乳", "巨乳", "爆乳", "超乳", "若手", "熟女", "貧尻", "巨尻", "低身長", "高身長" ]
 
         createButtons =
-            List.map (\p -> button [ onClick (SetSearchParam p) ] [ text p ]) expectParams
-
-        actresses2li actresses =
-            List.map (\a -> li [] [ text a.name, img [ src a.image, width 150, height 150 ] [] ]) actresses
+            List.map (\p -> div [ class "column" ] [ button [ class "button is-success", onClick (SetSearchParam p) ] [ text p ] ]) expectParams
 
         prevButtons =
-            [ button [ onClick First, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<<" ]
-            , button [ onClick Prev, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<" ]
+            [ button [ class "pagination-previous", onClick First, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<<" ]
+            , button [ class "pagination-previous", onClick Prev, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<" ]
             ]
 
         nextButtons =
-            [ button [ onClick Next, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">" ]
-            , button [ onClick Last, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">>" ]
+            [ button [ class "pagination-next", onClick Next, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">" ]
+            , button [ class "pagination-next", onClick Last, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">>" ]
             ]
 
         pagerButtonView index isActive =
@@ -160,25 +157,80 @@ view model =
                 , onClick <| GoTo index
                 ]
                 [ text <| String.fromInt index ]
-    in
-    div [] <|
-        [ div [] createButtons
-        , button [ onClick Submit ] [ text "検索" ]
-        ]
-            ++ [ p [] [ text ((String.fromInt <| Paginate.length model.paginatedActresses) ++ "人") ] ]
-            ++ prevButtons
-            ++ [ span []
-                    [ text
-                        (String.join " "
-                            [ String.fromInt <| Paginate.currentPage model.paginatedActresses
-                            , "/"
-                            , String.fromInt <| Paginate.totalPages model.paginatedActresses
+
+        actresses2li actresses =
+            List.map (\a -> div [ class "column is-one-quarter" ] [ profileCard a ]) actresses
+
+        profileCard actress =
+            div [ class "card" ]
+                [ div [ class "card-content" ]
+                    [ div [ class "media" ]
+                        [ div [ class "media-left" ]
+                            [ figure [ class "image is-128x128" ]
+                                [ img [ alt "Placeholder image", src actress.image ]
+                                    []
+                                ]
                             ]
-                        )
+                        , div [ class "media-content" ]
+                            [ p [ class "title is-4" ]
+                                [ text actress.name ]
+                            , p [ class "is-6" ]
+                                [ text ("バスト：" ++ actress.bust) ]
+                            , p [ class "is-6" ]
+                                [ text ("ウェスト：" ++ actress.west) ]
+                            , p [ class "is-6" ]
+                                [ text ("ヒップ：" ++ actress.hip) ]
+                            , p [ class "is-6" ]
+                                [ text ("カップ数：" ++ actress.cup) ]
+                            , p [ class "is-6" ]
+                                [ text ("年齢：" ++ actress.age) ]
+                            ]
+                        ]
+                    , div [ class "content" ]
+                        [ a [ target "_blank", href ("https://www.xvideos.com/?k=" ++ actress.name) ]
+                            [ text "xvideos" ]
+                        , br [] []
+                        , a [ target "_blank", href ("http://www.dmm.co.jp/search/=/searchstr=" ++ actress.name ++ "/analyze=V1EBAVcEUQs_/limit=30/n1=FgRCTw9VBA4GAVhfWkIHWw__/n2=Aw1fVhQKX1ZRAlhMUlo5QQgBU1lR/sort=ranking/") ]
+                            [ text "DMM" ]
+                        ]
                     ]
-               ]
-            ++ nextButtons
-            ++ [ ul [] (actresses2li <| Paginate.page model.paginatedActresses) ]
+                ]
+    in
+    div []
+        [ div [ class "box" ] <|
+            [ div [ class "columns is-centered" ]
+                [ div [ class "field is-grouped is-grouped-multiline" ] createButtons
+                ]
+            , div [ class "columns is-centered" ]
+                [ div [ class "column" ]
+                    [ p [] [ text ("検索条件：" ++ String.join " , " model.searchParams) ]
+                    , p [] [ text ("検索結果：" ++ (String.fromInt <| Paginate.length model.paginatedActresses) ++ "人") ]
+                    ]
+                ]
+            , div [ class "columns is-centered" ]
+                [ div [ class "column is-one-fifth" ]
+                    [ nav [ class "pagination is-centered" ]
+                        [ button [ class "pagination-previous", onClick First, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<<" ]
+                        , button [ class "pagination-previous", onClick Prev, disabled <| Paginate.isFirst model.paginatedActresses ] [ text "<" ]
+                        , ul [ class "pagination-list" ]
+                            [ text
+                                (String.join " "
+                                    [ String.fromInt <| Paginate.currentPage model.paginatedActresses
+                                    , "/"
+                                    , String.fromInt <| Paginate.totalPages model.paginatedActresses
+                                    ]
+                                )
+                            ]
+                        , button
+                            [ class "pagination-next", onClick Next, disabled <| Paginate.isLast model.paginatedActresses ]
+                            [ text ">" ]
+                        , button [ class "pagination-next", onClick Last, disabled <| Paginate.isLast model.paginatedActresses ] [ text ">>" ]
+                        ]
+                    ]
+                ]
+            ]
+        , div [ class "columns is-multiline" ] (actresses2li <| Paginate.page model.paginatedActresses)
+        ]
 
 
 viewContentItem : String -> Html Msg
